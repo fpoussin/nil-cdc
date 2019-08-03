@@ -14,12 +14,8 @@
     limitations under the License.
 */
 
-#include <stdio.h>
-#include <string.h>
-
 #include "ch.h"
 #include "hal.h"
-
 #include "usbcfg.h"
 
 /*===========================================================================*/
@@ -31,26 +27,98 @@
 /* Generic code.                                                             */
 /*===========================================================================*/
 
+SPIConfig spicfg = {
+    false,
+    0,
+    GPIOB,
+    0,
+    SPI_CR1_BR_2 | SPI_CR1_BR_1,
+    0
+};
+
+
 /*
- * Red LED blinker thread, times are in milliseconds.
+ * This callback is invoked when a transmission buffer has been completely
+ * read by the driver.
+ */
+static void txend1(UARTDriver *uartp) {
+
+    (void)uartp;
+}
+
+/*
+ * This callback is invoked when a transmission has physically completed.
+ */
+static void txend2(UARTDriver *uartp) {
+
+    (void)uartp;
+}
+
+/*
+ * This callback is invoked on a receive error, the errors mask is passed
+ * as parameter.
+ */
+static void rxerr(UARTDriver *uartp, uartflags_t e) {
+
+    (void)uartp;
+    (void)e;
+}
+
+/*
+ * This callback is invoked when a character is received but the application
+ * was not ready to receive it, the character is passed as parameter.
+ */
+static void rxchar(UARTDriver *uartp, uint16_t c) {
+
+    (void)uartp;
+    (void)c;
+}
+
+/*
+ * This callback is invoked when a receive buffer has been completely written.
+ */
+static void rxend(UARTDriver *uartp) {
+
+    (void)uartp;
+}
+
+/*
+ * UART driver configuration structure.
+ */
+static UARTConfig uartcfg = {
+    txend1,
+    txend2,
+    rxend,
+    rxchar,
+    rxerr,
+    0,
+    0,
+    38400,
+    0,
+    USART_CR2_LINEN,
+    0
+};
+
+/*
+ * SPI TX buffer.
+ */
+static uint8_t txbuf[6];
+
+/*
+ * RGB LED thread
  */
 static THD_WORKING_AREA(waThread1, 128);
 static THD_FUNCTION(Thread1, arg) {
 
   (void)arg;
   while (true) {
-    systime_t time;
 
-    time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
-    palClearLine(LINE_LED_RED);
-    chThdSleepMilliseconds(time);
-    palSetLine(LINE_LED_RED);
-    chThdSleepMilliseconds(time);
+    chThdSleepMilliseconds(250);
   }
 }
 
 THD_TABLE_BEGIN
-  THD_TABLE_ENTRY(waThread1, "blinker", Thread1, NULL)
+  THD_TABLE_ENTRY(waThread1, "spiled", Thread1, NULL)
 THD_TABLE_END
 
 /*
@@ -73,6 +141,11 @@ int main(void) {
    */
   sduObjectInit(&SDU1);
   sduStart(&SDU1, &serusbcfg);
+
+  uartStart(&UARTD2, &uartcfg);
+  spiStart(&SPID1, &spicfg);
+
+  spiStartSend(&SPID1, 6, txbuf);
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
