@@ -26,6 +26,74 @@ SerialUSBDriver SDU1;
 #define USBD1_DATA_AVAILABLE_EP         1
 #define USBD1_INTERRUPT_REQUEST_EP      2
 
+
+typedef struct  {
+    const uint8_t bLength;
+    const uint8_t bDescriptorType;
+    const uint16_t bString[30]; // Unicode String
+} __attribute__((packed)) USBStringDesc;
+
+typedef struct
+{
+    uint8_t  bmRequestType;
+    uint8_t  bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+} __attribute__((packed)) USBSetupPkt;
+
+/// Microsoft WCID descriptor
+typedef struct {
+    uint8_t bFirstInterfaceNumber;
+    uint8_t bInterfaceCount;
+    uint8_t compatibleID[8];
+    uint8_t subCompatibleID[8];
+    uint8_t reserved[6];
+} __attribute__((packed)) USBCompatIDFunctionDesc;
+
+typedef struct {
+    uint32_t dwLength;
+    uint16_t bcdVersion;
+    uint16_t wIndex;
+    uint8_t bCount;
+    uint8_t reserved[7];
+} __attribute__((packed)) USBCompatIDHeaderDesc;
+
+typedef struct {
+    USBCompatIDHeaderDesc header;
+    USBCompatIDFunctionDesc sections[];
+} __attribute__((packed)) USBCompatIDDesc;
+
+typedef struct {
+    uint32_t dwPropertySize;
+    uint32_t dwPropertyDataType;
+    uint16_t wPropertyNameLength;
+    uint16_t PropertyName[40];
+    uint32_t dwPropertyDataLength;
+    uint16_t PropertyData[100];
+} __attribute__((packed)) USBDExtPropertyDesc;
+
+typedef struct {
+    uint32_t dwLength;
+    uint16_t bcdVersion;
+    uint16_t wIndex;
+    uint16_t bCount;
+    USBDExtPropertyDesc properties[];
+} __attribute__((packed)) USBDExtPropertiesDesc;
+
+
+typedef struct {
+    uint8_t  bLength;
+    uint8_t  bDescriptorType;
+    uint16_t bcdUSB;
+    uint8_t  bDeviceClass;
+    uint8_t  bDeviceSubClass;
+    uint8_t  bDeviceProtocol;
+    uint8_t  bMaxPacketSize0;
+    uint8_t  bNumConfigurations;
+    uint8_t  bReserved;
+} __attribute__((packed)) USB_DEVICE_QUALIFIER_DESCRIPTOR;
+
 /*
  * USB Device Descriptor.
  */
@@ -149,45 +217,38 @@ static const uint8_t vcom_string0[] = {
 /*
  * Vendor string.
  */
-static const uint8_t vcom_string1[] = {
+static const USBStringDesc vcom_string1 = {
   USB_DESC_BYTE(38),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
-  'S', 0, 'T', 0, 'M', 0, 'i', 0, 'c', 0, 'r', 0, 'o', 0, 'e', 0,
-  'l', 0, 'e', 0, 'c', 0, 't', 0, 'r', 0, 'o', 0, 'n', 0, 'i', 0,
-  'c', 0, 's', 0
+  u"STMicroelectronics"
 };
 
 /*
  * Device Description string.
  */
-static const uint8_t vcom_string2[] = {
-  USB_DESC_BYTE(56),                    /* bLength.                         */
+static const USBStringDesc vcom_string2 = {
+  USB_DESC_BYTE(42),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
-  'C', 0, 'h', 0, 'i', 0, 'b', 0, 'i', 0, 'O', 0, 'S', 0, '/', 0,
-  'R', 0, 'T', 0, ' ', 0, 'V', 0, 'i', 0, 'r', 0, 't', 0, 'u', 0,
-  'a', 0, 'l', 0, ' ', 0, 'C', 0, 'O', 0, 'M', 0, ' ', 0, 'P', 0,
-  'o', 0, 'r', 0, 't', 0
+  u"Usb Serial Interface"
 };
 
 /*
  * Serial Number string.
  */
-static const uint8_t vcom_string3[] = {
-  USB_DESC_BYTE(8),                     /* bLength.                         */
+static const USBStringDesc vcom_string3 = {
+  USB_DESC_BYTE(6),                     /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
-  '0' + CH_KERNEL_MAJOR, 0,
-  '0' + CH_KERNEL_MINOR, 0,
-  '0' + CH_KERNEL_PATCH, 0
+  u"1.0"
 };
 
 /*
  * Strings wrappers array.
  */
 static const USBDescriptor vcom_strings[] = {
-  {sizeof vcom_string0, vcom_string0},
-  {sizeof vcom_string1, vcom_string1},
-  {sizeof vcom_string2, vcom_string2},
-  {sizeof vcom_string3, vcom_string3}
+  {sizeof vcom_string0, (uint8_t*)&vcom_string0},
+  {sizeof vcom_string1, (uint8_t*)&vcom_string1},
+  {sizeof vcom_string2, (uint8_t*)&vcom_string2},
+  {sizeof vcom_string3, (uint8_t*)&vcom_string3}
 };
 
 /*
